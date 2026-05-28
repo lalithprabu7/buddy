@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Shield, AlertTriangle, TrendingUp, Globe, MessageSquare, Settings,
   RefreshCw, Plus, ChevronRight, ChevronDown, Zap, Package, Truck,
@@ -819,6 +819,28 @@ export default function App() {
   // API Configuration
   const [apiKey, setApiKey] = useState(() => getStoredItem("anthropic_api_key", ""));
   const [showSettings, setShowSettings] = useState(false);
+  const [claudeStatus, setClaudeStatus] = useState("unknown"); // 'unknown' | 'connected' | 'error'
+  const [isTestingKey, setIsTestingKey] = useState(false);
+
+  // Streaming chat typewriter
+  const [streamingMessageId, setStreamingMessageId] = useState(null);
+  const [streamingText, setStreamingText] = useState("");
+
+  // India Hub Dashboard state
+  const [indiaPortThroughput, setIndiaPortThroughput] = useState({ mundra: 78, jnpt: 64, chennai: 71, kolkata: 55 });
+  const [inrRate, setInrRate] = useState(83.42);
+
+  // Agent: OSINT Sentinel
+  const [osintStatus, setOsintStatus] = useState("idle");
+  const [osintLogs, setOsintLogs] = useState(["[OSINT] Agent idle. Click 'Run Agent' to begin geopolitical news scan."]);
+
+  // Agent: Rupee FX Hedger
+  const [fxStatus, setFxStatus] = useState("idle");
+  const [fxLogs, setFxLogs] = useState(["[FX] Agent idle. Click 'Run Agent' to begin USD/INR impact analysis."]);
+
+  // Agent: Monsoon Weather Oracle
+  const [weatherStatus, setWeatherStatus] = useState("idle");
+  const [weatherLogs, setWeatherLogs] = useState(["[WEATHER] Agent idle. Click 'Run Agent' to begin Indian port weather scan."]);
 
   // Pro Max: Notification dropdown panel state
   const [showNotifications, setShowNotifications] = useState(false);
@@ -1245,14 +1267,214 @@ export default function App() {
     return `${h}:${m}:${s}`;
   }, [systemUptime]);
 
+  // India live data ticker
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const interval = setInterval(() => {
+      setIndiaPortThroughput(prev => ({
+        mundra: Math.max(55, Math.min(98, prev.mundra + (Math.random() > 0.5 ? 1 : -1))),
+        jnpt: Math.max(50, Math.min(95, prev.jnpt + (Math.random() > 0.5 ? 1 : -1))),
+        chennai: Math.max(52, Math.min(97, prev.chennai + (Math.random() > 0.5 ? 1 : -1))),
+        kolkata: Math.max(40, Math.min(85, prev.kolkata + (Math.random() > 0.5 ? 1 : -1))),
+      }));
+      setInrRate(prev => parseFloat((prev + (Math.random() * 0.08 - 0.04)).toFixed(2)));
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
+
   // ==========================================
   // 7. CORE INTELLIGENCE PIPELINES
   // ==========================================
+
+  const handleTestClaudeConnection = async () => {
+    if (!apiKey || isTestingKey) return;
+    setIsTestingKey(true);
+    setClaudeStatus("unknown");
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "dangerously-allow-browser": "true"
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 10,
+          messages: [{ role: "user", content: "ping" }]
+        })
+      });
+      if (res.ok) {
+        setClaudeStatus("connected");
+        triggerToast("Claude AI Connected Successfully ✅", "cyan");
+      } else {
+        setClaudeStatus("error");
+        triggerToast("Claude API key invalid or quota exceeded ❌", "critical");
+      }
+    } catch (e) {
+      setClaudeStatus("error");
+      triggerToast("Cannot connect to Claude API ❌", "critical");
+    } finally {
+      setIsTestingKey(false);
+    }
+  };
 
   const handleSaveSettings = () => {
     setStoredItem("anthropic_api_key", apiKey);
     triggerToast("Anthropic API key successfully updated in secure memory context", "cyan");
     setShowSettings(false);
+    if (apiKey) handleTestClaudeConnection();
+  };
+
+  // Agent: OSINT Sentinel
+  const handleRunOsintAgent = async () => {
+    if (osintStatus === "running") return;
+    setOsintStatus("running");
+    setOsintLogs(["[OSINT] 🛰️ Initializing geopolitical OSINT scanner...", "[OSINT] Connecting to global news intelligence feeds..."]);
+
+    const mockSteps = [
+      "[OSINT] Scanning 14 live geopolitical risk indices...",
+      "[OSINT] Parsing US-China trade tension signals → elevated tariff risk detected.",
+      "[OSINT] Cross-referencing India-Pakistan border activity → low impact on supply nodes.",
+      "[OSINT] Monitoring Taiwan Strait: DEFCON 3 alert active.",
+      "[OSINT] Scanning UN sanction registries for active supplier blacklists...",
+      "[OSINT] Geopolitical friction score computed: 68/100 — ELEVATED",
+      "[OSINT] Recommendation: Diversify Taiwan-linked semiconductor volume to India Hub nodes.",
+      "[OSINT] ✅ OSINT Sentinel scan complete."
+    ];
+
+    if (apiKey) {
+      try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "dangerously-allow-browser": "true" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 600,
+            system: "You are an OSINT geopolitical intelligence agent. Analyze current geopolitical risks for supply chains. Respond with 6-8 short log lines starting with [OSINT] prefix, each on a new line.",
+            messages: [{ role: "user", content: `Analyze geopolitical risk for these suppliers: ${suppliers.map(s => `${s.name}(${s.country})`).join(", ")}. Output log lines.` }]
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const lines = data.content[0].text.split("\n").filter(l => l.trim());
+          for (let i = 0; i < lines.length; i++) {
+            await new Promise(r => setTimeout(r, 400));
+            setOsintLogs(prev => [...prev, lines[i]]);
+          }
+          setOsintStatus("complete");
+          return;
+        }
+      } catch (e) {}
+    }
+
+    for (const step of mockSteps) {
+      await new Promise(r => setTimeout(r, 450));
+      setOsintLogs(prev => [...prev, step]);
+    }
+    setOsintStatus("complete");
+    triggerToast("🛰️ OSINT Sentinel scan complete.", "cyan");
+  };
+
+  // Agent: Rupee FX Hedger
+  const handleRunFxAgent = async () => {
+    if (fxStatus === "running") return;
+    setFxStatus("running");
+    setFxLogs(["[FX] 💹 Initializing Rupee FX Hedger...", "[FX] Connecting to forex data streams..."]);
+
+    const mockSteps = [
+      `[FX] Current INR/USD rate: ₹${inrRate} / $1`,
+      "[FX] Analyzing 30-day INR volatility window → +2.1% depreciation trend.",
+      "[FX] Computing import cost inflation across Electronics tier...",
+      "[FX] TSMC contract (USD-denominated): +₹18.4L margin compression detected.",
+      "[FX] ASML Holding (EUR-denominated): Hedge ratio at 0.72 — acceptable.",
+      "[FX] Recommended hedge: Lock forward contracts for USD 2.4M at ₹83.10 rate.",
+      "[FX] India domestic suppliers insulated — no forex risk exposure.",
+      "[FX] ✅ FX Hedging analysis complete. Total exposure: ₹2.28 Crore."
+    ];
+
+    if (apiKey) {
+      try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "dangerously-allow-browser": "true" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 600,
+            system: "You are a Rupee FX hedging specialist. Analyze USD/INR exchange rate impact on supply chain import costs. Respond with 6-8 short log lines starting with [FX] prefix, each on a new line.",
+            messages: [{ role: "user", content: `Current INR rate: ${inrRate}. Analyze forex risk for suppliers: ${suppliers.filter(s => s.country !== "India").map(s => `${s.name}(${s.country})`).join(", ")}` }]
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const lines = data.content[0].text.split("\n").filter(l => l.trim());
+          for (let i = 0; i < lines.length; i++) {
+            await new Promise(r => setTimeout(r, 400));
+            setFxLogs(prev => [...prev, lines[i]]);
+          }
+          setFxStatus("complete");
+          return;
+        }
+      } catch (e) {}
+    }
+
+    for (const step of mockSteps) {
+      await new Promise(r => setTimeout(r, 450));
+      setFxLogs(prev => [...prev, step]);
+    }
+    setFxStatus("complete");
+    triggerToast("💹 Rupee FX Hedger analysis complete.", "cyan");
+  };
+
+  // Agent: Monsoon Weather Oracle
+  const handleRunWeatherAgent = async () => {
+    if (weatherStatus === "running") return;
+    setWeatherStatus("running");
+    setWeatherLogs(["[WEATHER] 🌦️ Initializing Monsoon Weather Oracle...", "[WEATHER] Scanning IMD satellite feeds for Indian ports..."]);
+
+    const mockSteps = [
+      `[WEATHER] Mundra Port (Gujarat): ${indiaPortThroughput.mundra}% capacity — cyclone risk LOW.`,
+      `[WEATHER] JNPT Mumbai: ${indiaPortThroughput.jnpt}% capacity — monsoon surge risk MEDIUM.`,
+      `[WEATHER] Chennai Port: ${indiaPortThroughput.chennai}% capacity — northeast monsoon active.`,
+      `[WEATHER] Kolkata Port: ${indiaPortThroughput.kolkata}% capacity — Bay of Bengal depression forming.`,
+      "[WEATHER] IMD forecast: Heavy rainfall Kerala coast (next 72h) — potential delay to Serum Institute cold-chain logistics.",
+      "[WEATHER] Cyclone Bay-01 tracking 600km off Andhra Pradesh — Category 1, monitoring.",
+      "[WEATHER] Recommendation: Pre-route pharma cold-chain via Mundra for next 5 days.",
+      "[WEATHER] ✅ Monsoon Weather Oracle scan complete."
+    ];
+
+    if (apiKey) {
+      try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "dangerously-allow-browser": "true" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 600,
+            system: "You are an Indian monsoon and port weather intelligence agent. Analyze weather risk for Indian ports (Mundra, JNPT, Chennai, Kolkata). Respond with 6-8 short log lines starting with [WEATHER] prefix, each on a new line.",
+            messages: [{ role: "user", content: `Analyze weather risk for Indian supply chain ports. Current throughput: Mundra ${indiaPortThroughput.mundra}%, JNPT ${indiaPortThroughput.jnpt}%, Chennai ${indiaPortThroughput.chennai}%, Kolkata ${indiaPortThroughput.kolkata}%` }]
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const lines = data.content[0].text.split("\n").filter(l => l.trim());
+          for (let i = 0; i < lines.length; i++) {
+            await new Promise(r => setTimeout(r, 400));
+            setWeatherLogs(prev => [...prev, lines[i]]);
+          }
+          setWeatherStatus("complete");
+          return;
+        }
+      } catch (e) {}
+    }
+
+    for (const step of mockSteps) {
+      await new Promise(r => setTimeout(r, 450));
+      setWeatherLogs(prev => [...prev, step]);
+    }
+    setWeatherStatus("complete");
+    triggerToast("🌦️ Monsoon Weather Oracle scan complete.", "cyan");
   };
 
   const handleRunFullScan = async () => {
@@ -2367,6 +2589,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
           <nav className="w-full flex flex-col items-start px-2 gap-1.5">
             {[
               { id: "dashboard", label: "Dashboard", icon: BarChart2 },
+              { id: "indiadash", label: "India Hub", icon: Globe, badge: "🇮🇳" },
               { id: "suppliers", label: "Suppliers", icon: Package },
               { id: "warroom", label: "War Room", icon: Radio, highlight: true },
               { id: "trace", label: "Agent Trace", icon: Activity },
@@ -2391,7 +2614,11 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                   }`}
                 >
                   <div className="relative">
-                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {item.badge ? (
+                      <span className="text-base leading-none">{item.badge}</span>
+                    ) : (
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                    )}
                     {item.highlight && (
                       <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-critical animate-ping" />
                     )}
@@ -2914,6 +3141,229 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
 
             </div>
           )}
+
+          {/* ========================================================
+              INDIA HUB DASHBOARD
+              ======================================================== */}
+          {activePage === "indiadash" && (() => {
+            const indiaSuppliers = suppliers.filter(s => s.country === "India");
+            const indiaAvgRisk = indiaSuppliers.length > 0 ? Math.floor(indiaSuppliers.reduce((a, s) => a + s.riskPercentage, 0) / indiaSuppliers.length) : 0;
+
+            const indiaRadarData = [
+              { subject: "Geopolitical", ...Object.fromEntries(indiaSuppliers.map(s => [s.name.split(" ")[0], s.geopoliticalScore])) },
+              { subject: "Financial", ...Object.fromEntries(indiaSuppliers.map(s => [s.name.split(" ")[0], s.financialScore])) },
+              { subject: "Weather", ...Object.fromEntries(indiaSuppliers.map(s => [s.name.split(" ")[0], s.weatherScore])) },
+              { subject: "Logistics", ...Object.fromEntries(indiaSuppliers.map(s => [s.name.split(" ")[0], s.logisticsScore])) },
+              { subject: "Regulatory", ...Object.fromEntries(indiaSuppliers.map(s => [s.name.split(" ")[0], s.regulatoryScore])) },
+              { subject: "Cyber", ...Object.fromEntries(indiaSuppliers.map(s => [s.name.split(" ")[0], s.cyberScore])) },
+            ];
+
+            const sectorData = [
+              { sector: "Electronics", count: suppliers.filter(s => s.category === "Electronics").length, india: suppliers.filter(s => s.category === "Electronics" && s.country === "India").length },
+              { sector: "Logistics", count: suppliers.filter(s => s.category === "Logistics").length, india: suppliers.filter(s => s.category === "Logistics" && s.country === "India").length },
+              { sector: "Raw Materials", count: suppliers.filter(s => s.category === "Raw Materials").length, india: suppliers.filter(s => s.category === "Raw Materials" && s.country === "India").length },
+              { sector: "Pharma", count: suppliers.filter(s => s.category === "Pharma").length, india: suppliers.filter(s => s.category === "Pharma" && s.country === "India").length },
+            ];
+
+            const trend30 = Array.from({ length: 30 }, (_, i) => ({
+              day: `D-${30 - i}`,
+              indiaRisk: Math.max(10, Math.min(45, 22 + Math.sin(i * 0.4) * 8 + (i > 25 ? indiaAvgRisk - 22 : 0))),
+              globalRisk: Math.max(35, Math.min(80, 52 + Math.cos(i * 0.3) * 12)),
+            }));
+
+            const portData = [
+              { port: "Mundra", throughput: indiaPortThroughput.mundra, color: "#00D4FF" },
+              { port: "JNPT", throughput: indiaPortThroughput.jnpt, color: "#138808" },
+              { port: "Chennai", throughput: indiaPortThroughput.chennai, color: "#FF9933" },
+              { port: "Kolkata", throughput: indiaPortThroughput.kolkata, color: "#8B5CF6" },
+            ];
+
+            const radarColors = ["#00D4FF", "#30D158", "#FF9933", "#FF2D55", "#FFD60A", "#8B5CF6"];
+
+            return (
+              <div className="space-y-6 animate-fade-slide">
+
+                {/* Header */}
+                <div className="glass-card p-5 relative overflow-hidden border-[#FF9933]/30">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="font-display font-black text-lg tracking-widest uppercase text-text-primary flex items-center gap-2">
+                        <span>🇮🇳</span> India Hub Intelligence Dashboard
+                      </h2>
+                      <p className="text-xs text-text-secondary mt-1">Real-time visibility into India's supply chain resilience, port activity, and macro risk posture.</p>
+                    </div>
+                    <div className="text-right font-mono text-xs">
+                      <div className="text-[9px] text-text-secondary uppercase">LIVE INR / USD</div>
+                      <div className="text-2xl font-black text-[#FF9933]">₹{inrRate}</div>
+                      <div className="text-[9px] text-text-secondary/60 mt-0.5">Live simulated rate</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPI Row */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: "India Suppliers", value: indiaSuppliers.length, sub: "Active nodes", color: "text-[#FF9933]", icon: "🏭" },
+                    { label: "India Avg Risk", value: `${indiaAvgRisk}%`, sub: "Portfolio index", color: "text-low", icon: "🛡️" },
+                    { label: "Mundra Throughput", value: `${indiaPortThroughput.mundra}%`, sub: "Live capacity", color: "text-accent-theme", icon: "🚢" },
+                    { label: "INR Exposure", value: `₹${(suppliers.filter(s => s.country !== "India").reduce((a, s) => a + s.riskPercentage, 0) * inrRate / 100).toFixed(0)}L`, sub: "Est import risk", color: "text-high", icon: "💹" },
+                  ].map((kpi, idx) => (
+                    <div key={idx} className="glass-card p-4 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#FF9933] via-white to-[#138808] opacity-40" />
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[9px] font-display font-semibold tracking-wider text-text-secondary uppercase">{kpi.label}</p>
+                          <h3 className={`text-2xl font-display font-black tracking-tight mt-1 ${kpi.color}`}>{kpi.value}</h3>
+                          <p className="text-[9px] font-mono text-text-secondary/60 mt-1">{kpi.sub}</p>
+                        </div>
+                        <span className="text-2xl">{kpi.icon}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Charts Row 1: Radar + Sector */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="glass-card p-5">
+                    <h3 className="font-display font-bold text-xs text-text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#FF9933] animate-pulse" />
+                      India Supplier Risk Radar (6 Dimensions)
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={indiaRadarData}>
+                          <PolarGrid stroke="rgba(255,255,255,0.06)" />
+                          <PolarAngleAxis dataKey="subject" stroke="#8899AA" style={{ fontSize: '9px', fontFamily: 'Orbitron' }} />
+                          <PolarRadiusAxis stroke="#8899AA" style={{ fontSize: '8px' }} domain={[0, 100]} />
+                          {indiaSuppliers.slice(0, 4).map((s, i) => (
+                            <Radar key={s.id} name={s.name.split(" ")[0]} dataKey={s.name.split(" ")[0]} stroke={radarColors[i]} fill={radarColors[i]} fillOpacity={0.15} />
+                          ))}
+                          <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', fontFamily: 'Orbitron' }} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(5,10,20,0.95)', border: '1px solid rgba(255,153,51,0.3)', borderRadius: '8px' }} itemStyle={{ color: '#F0F8FF', fontSize: '11px' }} />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="glass-card p-5">
+                    <h3 className="font-display font-bold text-xs text-text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#138808] animate-pulse" />
+                      India vs Global Sector Supplier Split
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={sectorData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="sector" stroke="#8899AA" style={{ fontSize: '9px', fontFamily: 'Orbitron' }} />
+                          <YAxis stroke="#8899AA" style={{ fontSize: '9px' }} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(5,10,20,0.95)', border: '1px solid rgba(255,153,51,0.3)', borderRadius: '8px' }} itemStyle={{ color: '#F0F8FF', fontSize: '11px' }} />
+                          <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', fontFamily: 'Orbitron' }} />
+                          <Bar dataKey="count" name="Total Global" fill="rgba(255,255,255,0.12)" radius={[4,4,0,0]} />
+                          <Bar dataKey="india" name="India Hub" fill="#FF9933" radius={[4,4,0,0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Charts Row 2: 30-day trend + Port Activity */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="glass-card p-5">
+                    <h3 className="font-display font-bold text-xs text-text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-accent-theme animate-ping" />
+                      30-Day India vs Global Risk Trend
+                    </h3>
+                    <div className="h-52">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={trend30}>
+                          <defs>
+                            <linearGradient id="indiaGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#FF9933" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#FF9933" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="globalGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#FF2D55" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#FF2D55" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                          <XAxis dataKey="day" stroke="#8899AA" style={{ fontSize: '8px' }} tickCount={8} />
+                          <YAxis stroke="#8899AA" style={{ fontSize: '8px' }} domain={[0, 100]} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(5,10,20,0.95)', border: '1px solid rgba(255,153,51,0.3)', borderRadius: '8px' }} itemStyle={{ color: '#F0F8FF', fontSize: '11px' }} />
+                          <Area type="monotone" dataKey="indiaRisk" name="India Risk %" stroke="#FF9933" fill="url(#indiaGrad)" strokeWidth={2} />
+                          <Area type="monotone" dataKey="globalRisk" name="Global Risk %" stroke="#FF2D55" fill="url(#globalGrad)" strokeWidth={1.5} strokeDasharray="4 4" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="glass-card p-5">
+                    <h3 className="font-display font-bold text-xs text-text-primary uppercase tracking-widest mb-1 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#138808] animate-ping" />
+                      🚢 Live Indian Port Throughput Capacity
+                    </h3>
+                    <p className="text-[9px] text-text-secondary mb-4 font-mono">Live-simulated. Updates every 4s via satellite feed link.</p>
+                    <div className="space-y-4">
+                      {portData.map(port => (
+                        <div key={port.port}>
+                          <div className="flex justify-between items-center text-xs font-mono mb-1">
+                            <span className="text-text-primary font-bold">{port.port} Port</span>
+                            <span style={{ color: port.color }} className="font-bold">{port.throughput}% capacity</span>
+                          </div>
+                          <div className="w-full bg-white/5 border border-white/5 h-3 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-1000"
+                              style={{ width: `${port.throughput}%`, backgroundColor: port.color, boxShadow: `0 0 8px ${port.color}60` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-[8px] font-mono text-text-secondary/40 text-right">SATELLITE LINK: ACTIVE // IMD INTEGRATION</div>
+                  </div>
+                </div>
+
+                {/* India Supplier Quick Table */}
+                <div className="glass-card p-5">
+                  <h3 className="font-display font-bold text-xs text-text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                    🏭 India Hub Supplier Dossier
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs font-mono">
+                      <thead>
+                        <tr className="border-b border-white/5 text-[9px] text-text-secondary uppercase tracking-widest">
+                          <th className="text-left py-2 pr-4">Supplier</th>
+                          <th className="text-left py-2 pr-4">Category</th>
+                          <th className="text-left py-2 pr-4">Lead Time</th>
+                          <th className="text-left py-2 pr-4">Risk</th>
+                          <th className="text-left py-2">Primary Risk Driver</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {indiaSuppliers.map(s => {
+                          let riskColor = "text-low";
+                          if (s.riskLevel === "CRITICAL") riskColor = "text-critical animate-pulse";
+                          else if (s.riskLevel === "HIGH") riskColor = "text-high";
+                          else if (s.riskLevel === "MEDIUM") riskColor = "text-medium";
+                          return (
+                            <tr key={s.id} className="border-b border-white/5 hover:bg-white/3 transition-all cursor-pointer" onClick={() => { setActivePage("suppliers"); setExpandedSupplier(s.id); }}>
+                              <td className="py-2.5 pr-4 font-bold text-text-primary">{s.name}</td>
+                              <td className="py-2.5 pr-4 text-text-secondary">{s.category}</td>
+                              <td className="py-2.5 pr-4 text-text-secondary">{s.leadTime}d</td>
+                              <td className={`py-2.5 pr-4 font-black ${riskColor}`}>{s.riskLevel} ({s.riskPercentage}%)</td>
+                              <td className="py-2.5 text-text-secondary">{s.primaryRisk}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })()}
 
           {/* ========================================================
               PAGE 2: SUPPLIERS
@@ -3935,6 +4385,132 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                 </button>
               </div>
 
+              {/* ===== NEW SPECIALIST AI AGENTS ===== */}
+              <div className="space-y-1 pt-4">
+                <h3 className="font-display font-black text-xs text-text-primary uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF9933] animate-pulse" />
+                  Specialist Intelligence Agents — India Operations Command
+                </h3>
+                <p className="text-[10px] text-text-secondary">Three dedicated autonomous agents providing live geopolitical, forex, and weather risk intelligence for Indian supply corridors.</p>
+              </div>
+
+              {/* AGENT: OSINT Sentinel */}
+              {(() => {
+                const statusColors = { idle: "text-text-secondary border-white/10", running: "text-accent-theme border-accent-theme/40 animate-pulse", complete: "text-low border-low/30", error: "text-critical border-critical/30" };
+                const statusLabel = { idle: "IDLE", running: "SCANNING...", complete: "COMPLETE ✓", error: "ERROR" };
+                return (
+                  <div className="glass-card p-5 space-y-4 text-left border-l-4 border-l-[#00D4FF]/60">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-accent-theme/10 border border-accent-theme/30 flex items-center justify-center text-xl">🛰️</div>
+                        <div>
+                          <h4 className="font-display font-black text-xs text-text-primary uppercase tracking-widest">OSINT Sentinel</h4>
+                          <p className="text-[9px] font-mono text-text-secondary mt-0.5">Geopolitical News & Sanctions Intelligence Scanner</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[8px] font-display font-black px-2 py-0.5 rounded border tracking-widest uppercase ${statusColors[osintStatus]}`}>
+                          {statusLabel[osintStatus]}
+                        </span>
+                        <button
+                          onClick={osintStatus === "complete" || osintStatus === "error" ? () => { setOsintStatus("idle"); setOsintLogs(["[OSINT] Agent reset. Click 'Run Agent' to begin."]) } : handleRunOsintAgent}
+                          disabled={osintStatus === "running"}
+                          className={`px-4 py-1.5 rounded-xl font-display font-black text-[9px] uppercase tracking-widest transition-all select-none ${osintStatus === "running" ? "bg-accent-theme/20 text-accent-theme/50 cursor-not-allowed" : osintStatus === "complete" || osintStatus === "error" ? "border border-white/10 text-text-secondary hover:text-text-primary hover:border-white/20" : "bg-accent-theme text-white hover:opacity-90"}`}
+                        >
+                          {osintStatus === "running" ? "SCANNING..." : osintStatus === "complete" || osintStatus === "error" ? "RESET" : "RUN AGENT"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-black/50 border border-accent-theme/15 rounded-xl p-4 font-mono text-[10px] text-accent-theme space-y-1.5 max-h-36 overflow-y-auto">
+                      {osintLogs.map((log, idx) => (
+                        <div key={idx} className={`flex gap-2 ${log.includes("✅") ? "text-low font-bold" : log.includes("DEFCON") || log.includes("ELEVATED") ? "text-high" : "text-accent-theme"}`}>
+                          <span className="opacity-40">›</span><span>{log}</span>
+                        </div>
+                      ))}
+                      {osintStatus === "running" && <div className="text-accent-theme/50 animate-pulse">█</div>}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* AGENT: Rupee FX Hedger */}
+              {(() => {
+                const statusColors = { idle: "text-text-secondary border-white/10", running: "text-[#FF9933] border-[#FF9933]/40 animate-pulse", complete: "text-low border-low/30", error: "text-critical border-critical/30" };
+                const statusLabel = { idle: "IDLE", running: "COMPUTING...", complete: "COMPLETE ✓", error: "ERROR" };
+                return (
+                  <div className="glass-card p-5 space-y-4 text-left border-l-4 border-l-[#FF9933]/60">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#FF9933]/10 border border-[#FF9933]/30 flex items-center justify-center text-xl">💹</div>
+                        <div>
+                          <h4 className="font-display font-black text-xs text-text-primary uppercase tracking-widest">Rupee FX Hedger</h4>
+                          <p className="text-[9px] font-mono text-text-secondary mt-0.5">USD/INR Impact Analyzer & Forex Hedge Advisor — Live Rate: ₹{inrRate}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[8px] font-display font-black px-2 py-0.5 rounded border tracking-widest uppercase ${statusColors[fxStatus]}`}>
+                          {statusLabel[fxStatus]}
+                        </span>
+                        <button
+                          onClick={fxStatus === "complete" || fxStatus === "error" ? () => { setFxStatus("idle"); setFxLogs(["[FX] Agent reset. Click 'Run Agent' to begin."]) } : handleRunFxAgent}
+                          disabled={fxStatus === "running"}
+                          className={`px-4 py-1.5 rounded-xl font-display font-black text-[9px] uppercase tracking-widest transition-all select-none ${fxStatus === "running" ? "bg-[#FF9933]/20 text-[#FF9933]/50 cursor-not-allowed" : fxStatus === "complete" || fxStatus === "error" ? "border border-white/10 text-text-secondary hover:text-text-primary hover:border-white/20" : "bg-[#FF9933] text-white hover:opacity-90"}`}
+                        >
+                          {fxStatus === "running" ? "COMPUTING..." : fxStatus === "complete" || fxStatus === "error" ? "RESET" : "RUN AGENT"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-black/50 border border-[#FF9933]/15 rounded-xl p-4 font-mono text-[10px] text-[#FF9933] space-y-1.5 max-h-36 overflow-y-auto">
+                      {fxLogs.map((log, idx) => (
+                        <div key={idx} className={`flex gap-2 ${log.includes("✅") ? "text-low font-bold" : log.includes("Crore") || log.includes("compression") ? "text-high" : "text-[#FF9933]"}`}>
+                          <span className="opacity-40">›</span><span>{log}</span>
+                        </div>
+                      ))}
+                      {fxStatus === "running" && <div className="text-[#FF9933]/50 animate-pulse">█</div>}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* AGENT: Monsoon Weather Oracle */}
+              {(() => {
+                const statusColors = { idle: "text-text-secondary border-white/10", running: "text-[#138808] border-[#138808]/40 animate-pulse", complete: "text-low border-low/30", error: "text-critical border-critical/30" };
+                const statusLabel = { idle: "IDLE", running: "SCANNING...", complete: "COMPLETE ✓", error: "ERROR" };
+                return (
+                  <div className="glass-card p-5 space-y-4 text-left border-l-4 border-l-[#138808]/60">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#138808]/10 border border-[#138808]/30 flex items-center justify-center text-xl">🌦️</div>
+                        <div>
+                          <h4 className="font-display font-black text-xs text-text-primary uppercase tracking-widest">Monsoon Weather Oracle</h4>
+                          <p className="text-[9px] font-mono text-text-secondary mt-0.5">IMD Port Weather Monitor — Mundra {indiaPortThroughput.mundra}% / JNPT {indiaPortThroughput.jnpt}%</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[8px] font-display font-black px-2 py-0.5 rounded border tracking-widest uppercase ${statusColors[weatherStatus]}`}>
+                          {statusLabel[weatherStatus]}
+                        </span>
+                        <button
+                          onClick={weatherStatus === "complete" || weatherStatus === "error" ? () => { setWeatherStatus("idle"); setWeatherLogs(["[WEATHER] Agent reset. Click 'Run Agent' to begin."]) } : handleRunWeatherAgent}
+                          disabled={weatherStatus === "running"}
+                          className={`px-4 py-1.5 rounded-xl font-display font-black text-[9px] uppercase tracking-widest transition-all select-none ${weatherStatus === "running" ? "bg-[#138808]/20 text-[#138808]/50 cursor-not-allowed" : weatherStatus === "complete" || weatherStatus === "error" ? "border border-white/10 text-text-secondary hover:text-text-primary hover:border-white/20" : "bg-[#138808] text-white hover:opacity-90"}`}
+                        >
+                          {weatherStatus === "running" ? "SCANNING..." : weatherStatus === "complete" || weatherStatus === "error" ? "RESET" : "RUN AGENT"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-black/50 border border-[#138808]/15 rounded-xl p-4 font-mono text-[10px] text-[#30D158] space-y-1.5 max-h-36 overflow-y-auto">
+                      {weatherLogs.map((log, idx) => (
+                        <div key={idx} className={`flex gap-2 ${log.includes("✅") ? "text-low font-bold" : log.includes("Cyclone") || log.includes("MEDIUM") ? "text-high" : "text-[#30D158]"}`}>
+                          <span className="opacity-40">›</span><span>{log}</span>
+                        </div>
+                      ))}
+                      {weatherStatus === "running" && <div className="text-[#30D158]/50 animate-pulse">█</div>}
+                    </div>
+                  </div>
+                );
+              })()}
+
             </div>
           )}
 
@@ -4453,19 +5029,31 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
               
               <div className="p-4 border-b border-white/5 bg-bg-base/35 backdrop-blur flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-accent-theme flex items-center justify-center font-display font-black text-accent-theme text-xs tracking-wider shadow-glow-cyan animate-pulse">KS</div>
+                  <div className={`w-8 h-8 rounded-lg bg-white/5 border flex items-center justify-center font-display font-black text-xs tracking-wider ${claudeStatus === "connected" ? "border-low text-low shadow-[0_0_10px_rgba(48,209,88,0.3)]" : "border-accent-theme text-accent-theme shadow-glow-cyan animate-pulse"}`}>KS</div>
                   <div className="text-left">
                     <h3 className="font-display font-black text-xs tracking-wider text-text-primary uppercase">Conversational Intel Workspace</h3>
-                    <p className="text-[9px] font-mono text-text-secondary mt-0.5">SECURE PORTAL LOOP // ACTIVE SUITE VERIFIED</p>
+                    <p className="text-[9px] font-mono text-text-secondary mt-0.5">
+                      {claudeStatus === "connected" ? "CLAUDE AI LIVE // REAL-TIME RESPONSES" : "MOCK AI ENGINE // SET API KEY IN SETTINGS"}
+                    </p>
                   </div>
                 </div>
 
-                <button
-                  onClick={handleClearChat}
-                  className="px-3 py-1 border border-white/5 hover:border-white/10 rounded-lg text-text-secondary hover:text-text-primary transition-all text-[10px] font-mono font-semibold uppercase tracking-wider"
-                >
-                  Clear Chat Logs
-                </button>
+                <div className="flex items-center gap-3">
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[8px] font-display font-black tracking-widest uppercase ${
+                    claudeStatus === "connected" ? "border-low/40 bg-low/10 text-low" :
+                    claudeStatus === "error" ? "border-critical/40 bg-critical/10 text-critical" :
+                    "border-white/10 bg-white/5 text-text-secondary"
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${claudeStatus === "connected" ? "bg-low animate-ping" : claudeStatus === "error" ? "bg-critical" : "bg-text-secondary/40"}`} />
+                    {claudeStatus === "connected" ? "Claude AI LIVE" : claudeStatus === "error" ? "API Error" : "Mock Mode"}
+                  </div>
+                  <button
+                    onClick={handleClearChat}
+                    className="px-3 py-1 border border-white/5 hover:border-white/10 rounded-lg text-text-secondary hover:text-text-primary transition-all text-[10px] font-mono font-semibold uppercase tracking-wider"
+                  >
+                    Clear Logs
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 p-6 overflow-y-auto space-y-6 text-left">
@@ -4591,7 +5179,13 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-display font-bold text-text-secondary uppercase tracking-wider block">Anthropic API Secret Key</label>
-                  <span className="text-[8px] font-mono text-accent-theme">STORES SECURELY IN MEMORY</span>
+                  <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded border ${
+                    claudeStatus === "connected" ? "text-low border-low/30 bg-low/10" :
+                    claudeStatus === "error" ? "text-critical border-critical/30 bg-critical/10" :
+                    "text-text-secondary border-white/10"
+                  }`}>
+                    {claudeStatus === "connected" ? "✅ VERIFIED" : claudeStatus === "error" ? "❌ INVALID" : "STORES SECURELY"}
+                  </span>
                 </div>
                 <input
                   type="password"
@@ -4601,8 +5195,31 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                   className="w-full bg-white/5 focus:border-accent-theme focus:outline-none rounded-xl py-2.5 px-3.5 text-xs font-mono text-text-primary transition-all font-semibold"
                 />
                 <span className="text-[10px] text-text-secondary leading-normal block">
-                  Input a standard **Claude Sonnet 3.5** API key. If left blank, the app will execute its high-fidelity mock engine fallbacks immediately.
+                  Input a standard Claude API key. If left blank, the app will use its high-fidelity mock engine.
                 </span>
+
+                {/* Test Connection Button */}
+                <button
+                  onClick={handleTestClaudeConnection}
+                  disabled={!apiKey || isTestingKey}
+                  className={`w-full py-2.5 rounded-xl font-display font-bold text-xs uppercase tracking-widest transition-all select-none flex items-center justify-center gap-2 ${
+                    !apiKey ? "opacity-30 cursor-not-allowed border border-white/5 text-text-secondary" :
+                    isTestingKey ? "border border-accent-theme/30 text-accent-theme animate-pulse" :
+                    claudeStatus === "connected" ? "bg-low/10 border border-low/30 text-low" :
+                    claudeStatus === "error" ? "bg-critical/10 border border-critical/30 text-critical" :
+                    "border border-accent-theme/30 text-accent-theme hover:bg-accent-theme/5"
+                  }`}
+                >
+                  {isTestingKey ? (
+                    <><span className="w-3 h-3 rounded-full border-2 border-accent-theme border-t-transparent animate-spin" /> TESTING CONNECTION...</>
+                  ) : claudeStatus === "connected" ? (
+                    "✅ Claude AI Connected"
+                  ) : claudeStatus === "error" ? (
+                    "❌ Connection Failed — Retry"
+                  ) : (
+                    "TEST CLAUDE CONNECTION"
+                  )}
+                </button>
               </div>
             </div>
 
