@@ -1005,7 +1005,7 @@ export default function App() {
       { max: 15, text: "âš¡ [BOOT] BUDDY SHIELD AI RISK SHELL INITIALIZING..." },
       { max: 35, text: "ðŸ“¡ [CONNECT] VERIFYING SECURE INTEGRATED SATELLITE LINKS..." },
       { max: 55, text: "ðŸ”’ [AUDIT] AUDITING QUANTUM-RESISTANT CYBER DEFENSE INTEGRITY..." },
-      { max: 75, text: "ðŸ‡®ðŸ‡³ [RESOLVE] SYNCING ISRO TELEMETRY NODES (BENGALURU/PUNE)..." },
+      { max: 75, text: "🛰️ [RESOLVE] SYNCING ISRO TELEMETRY NODES (BENGALURU/PUNE)..." },
       { max: 90, text: "ðŸ“¦ [INTELLIGENCE] MONITORING TATA HOSUR & ADANI MUNDRA DIRECTIVES..." },
       { max: 100, text: "ðŸŸ¢ [SUCCESS] BUDDY SHIELD AI ONLINE. REDIRECTING CONTROLLER..." }
     ];
@@ -2355,7 +2355,6 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
             <div className="mt-2 space-y-1">
               <h1 className="font-display font-black text-3xl tracking-widest text-text-primary uppercase flex items-center justify-center gap-2">
                 <span>BUDDY</span> <span className="text-accent-theme font-extrabold">SHIELD AI</span>
-                <span className="text-xl">ðŸ‡®ðŸ‡³</span>
               </h1>
               <p className="text-[10px] font-mono text-text-secondary/80 tracking-widest uppercase mt-1">
                 cognitive risk intelligence command chassis
@@ -2461,7 +2460,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
             
             <div className="mt-2">
               <h1 className="font-display font-black text-2xl tracking-widest text-text-primary uppercase flex items-center justify-center gap-2">
-                <span>BUDDY SHIELD AI</span> <span className="text-accent-theme">ðŸ‡®ðŸ‡³</span>
+                <span>BUDDY SHIELD AI</span>
               </h1>
               <p className="text-[9px] font-mono text-text-secondary tracking-widest uppercase mt-1">cognitive risk command core</p>
             </div>
@@ -2525,7 +2524,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
             {/* Hover visual swipe cue */}
             <div className="mt-3 flex justify-between items-center text-[9px] font-display font-bold uppercase tracking-wider text-[#FF9933] group-hover:text-low transition-colors">
               <span>SWIPE SMARTCARD FOR DIRECT ENTRY â¯</span>
-              <span className="text-[10px] group-hover:scale-110 transition-transform">ðŸ‡®ðŸ‡³</span>
+              
             </div>
           </div>
 
