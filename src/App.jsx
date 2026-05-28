@@ -655,7 +655,7 @@ We currently track **${asiaSuppliers.length}** active partners inside the highly
 
 | Supplier | Location | Main Risk Factor | Risk Score |
 | :--- | :--- | :--- | :---: |
-${asiaSuppliers.map(s => `| **${s.name}** | ${s.flag} ${s.country} | ${s.factors[0] || "Regional supply choke points"} | \`${s.riskPercentage}%\` |`).join("\n")}
+${asiaSuppliers.map(s => `| **${s.name}** | ${s.country} | ${s.factors[0] || "Regional supply choke points"} | \`${s.riskPercentage}%\` |`).join("\n")}
 
 **RISK MITIGATION DIRECTIVES:**
 - **Diversify Production**: Distribute volume to secondary fabs in **India Hub** (Hosur packaging).
@@ -1933,7 +1933,7 @@ export default function App() {
 
     setSuppliers(updatedSuppliers);
     setStoredItem("suppliers", updatedSuppliers);
-    triggerToast(`ðŸ‡®ðŸ‡³ Reshored ${reshoreVolume}% to ${toSupplier.name}! Geopolitical exposure reduced.`, "cyan");
+    triggerToast(`Reshored ${reshoreVolume}% to ${toSupplier.name}! Geopolitical exposure reduced.`, "cyan");
 
     // Add log to console
     setConsoleLogs(prev => [
@@ -2518,7 +2518,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
             {/* Interactive barcode */}
             <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-white/5 font-mono text-[6.5px] text-text-secondary/50">
               <div className="w-16 h-4 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.1),rgba(255,255,255,0.1)_1px,transparent_1px,transparent_3px)] opacity-50" />
-              <span className="truncate">KV-AUTH-OPERATIONS // ID_9832X_B</span>
+              <span className="truncate">KS-AUTH-OPERATIONS // ID_9832X_B</span>
             </div>
 
             {/* Hover visual swipe cue */}
@@ -2576,11 +2576,11 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
           
           <div className="flex items-center gap-3 px-4 py-2 select-none">
             <div className="w-8 h-8 rounded-lg bg-white/5 border border-accent-theme flex items-center justify-center shadow-[0_0_12px_rgba(var(--accent-theme),0.4)]">
-              <span className="font-display font-black text-accent-theme text-sm tracking-tighter">KV</span>
+              <span className="font-display font-black text-accent-theme text-sm tracking-tighter">KS</span>
             </div>
             {sidebarHover && (
               <span className="font-display font-bold text-sm tracking-widest text-text-primary uppercase animate-fade-slide flex items-center gap-1.5">
-                BUDDY<span className="text-accent-theme">AI</span> <span>ðŸ‡®ðŸ‡³</span>
+                BUDDY<span className="text-accent-theme">AI</span>
               </span>
             )}
           </div>
@@ -2588,7 +2588,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
           <nav className="w-full flex flex-col items-start px-2 gap-1.5">
             {[
               { id: "dashboard", label: "Dashboard", icon: BarChart2 },
-              { id: "indiadash", label: "India Hub", icon: Globe, badge: "🇮🇳" },
+              { id: "indiadash", label: "India Hub", icon: Globe },
               { id: "suppliers", label: "Suppliers", icon: Package },
               { id: "warroom", label: "War Room", icon: Radio, highlight: true },
               { id: "trace", label: "Agent Trace", icon: Activity },
@@ -3188,7 +3188,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                   <div className="flex justify-between items-center">
                     <div>
                       <h2 className="font-display font-black text-lg tracking-widest uppercase text-text-primary flex items-center gap-2">
-                        <span>🇮🇳</span> India Hub Intelligence Dashboard
+                        <Globe className="w-5 h-5 text-accent-theme animate-pulse" /> India Hub Intelligence Dashboard
                       </h2>
                       <p className="text-xs text-text-secondary mt-1">Real-time visibility into India's supply chain resilience, port activity, and macro risk posture.</p>
                     </div>
@@ -3458,8 +3458,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808] opacity-80" />
                 
                 <h3 className="font-display font-bold text-xs text-text-primary uppercase tracking-widest flex items-center gap-2">
-                  <span className="text-sm animate-pulse">ðŸ‡®ðŸ‡³</span>
-                  Bharatiya Strategic Reshoring Planner
+                  <Activity className="w-4 h-4 text-accent-theme animate-pulse" /> Bharatiya Strategic Reshoring Planner
                 </h3>
                 <p className="text-[10px] text-text-secondary leading-normal">
                   Relocate single-source procurement volume from volatile foreign hubs to high-reliability domestic Indian manufacturing clusters.
@@ -3669,7 +3668,6 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                                 {supplier.name}
                               </h3>
                               <p className="text-[10px] text-text-secondary mt-1 flex items-center gap-1.5 font-mono">
-                                <span>{supplier.flag}</span>
                                 <span>{supplier.country}</span>
                               </p>
                             </div>
@@ -3759,7 +3757,6 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                                       <div key={altIdx} className="bg-white/5 border border-white/5 rounded-lg p-2 flex-1 text-[10px] flex items-center justify-between font-mono">
                                         <span className="text-text-primary font-bold truncate max-w-[80px]">{alt.name}</span>
                                         <span className="text-text-secondary font-semibold flex items-center gap-1">
-                                          <span>{alt.flag}</span>
                                           <span>{alt.country}</span>
                                         </span>
                                       </div>
@@ -4305,7 +4302,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                             <span className="text-[10px] font-display font-extrabold text-text-primary uppercase tracking-wide truncate block">
                               {s.name}
                             </span>
-                            <span className="text-[8px] font-mono text-text-secondary mt-0.5 block truncate">{s.flag} {s.country} // {s.category}</span>
+                            <span className="text-[8px] font-mono text-text-secondary mt-0.5 block truncate">{s.country} // {s.category}</span>
                           </div>
 
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
