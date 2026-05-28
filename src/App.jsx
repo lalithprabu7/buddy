@@ -2518,7 +2518,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
             {/* Interactive barcode */}
             <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-white/5 font-mono text-[6.5px] text-text-secondary/50">
               <div className="w-16 h-4 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.1),rgba(255,255,255,0.1)_1px,transparent_1px,transparent_3px)] opacity-50" />
-              <span className="truncate">KS-AUTH-OPERATIONS // ID_9832X_B</span>
+              <span className="truncate">KV-AUTH-OPERATIONS // ID_9832X_B</span>
             </div>
 
             {/* Hover visual swipe cue */}
@@ -2576,7 +2576,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
           
           <div className="flex items-center gap-3 px-4 py-2 select-none">
             <div className="w-8 h-8 rounded-lg bg-white/5 border border-accent-theme flex items-center justify-center shadow-[0_0_12px_rgba(var(--accent-theme),0.4)]">
-              <span className="font-display font-black text-accent-theme text-sm tracking-tighter">KS</span>
+              <span className="font-display font-black text-accent-theme text-sm tracking-tighter">KV</span>
             </div>
             {sidebarHover && (
               <span className="font-display font-bold text-sm tracking-widest text-text-primary uppercase animate-fade-slide flex items-center gap-1.5">
@@ -5025,7 +5025,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
               
               <div className="p-4 border-b border-white/5 bg-bg-base/35 backdrop-blur flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg bg-white/5 border flex items-center justify-center font-display font-black text-xs tracking-wider ${claudeStatus === "connected" ? "border-low text-low shadow-[0_0_10px_rgba(48,209,88,0.3)]" : "border-accent-theme text-accent-theme shadow-glow-cyan animate-pulse"}`}>KS</div>
+                  <div className={`w-8 h-8 rounded-lg bg-white/5 border flex items-center justify-center font-display font-black text-xs tracking-wider ${claudeStatus === "connected" ? "border-low text-low shadow-[0_0_10px_rgba(48,209,88,0.3)]" : "border-accent-theme text-accent-theme shadow-glow-cyan animate-pulse"}`}>{claudeStatus === "connected" ? "KV" : "KV"}</div>
                   <div className="text-left">
                     <h3 className="font-display font-black text-xs tracking-wider text-text-primary uppercase">Conversational Intel Workspace</h3>
                     <p className="text-[9px] font-mono text-text-secondary mt-0.5">
@@ -5062,7 +5062,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                     >
                       {isAi && (
                         <div className="w-8 h-8 rounded-lg border border-accent-theme/35 bg-white/5 flex items-center justify-center font-display font-black text-accent-theme text-xs flex-shrink-0">
-                          KS
+                          KV
                         </div>
                       )}
 
@@ -5090,7 +5090,7 @@ AI-generated summaries serve as advisory intelligence. All conclusions, particul
                 {isChatLoading && (
                   <div className="flex gap-4 justify-start animate-fade-slide">
                     <div className="w-8 h-8 rounded-lg border border-accent-theme/30 bg-white/5 flex items-center justify-center font-display font-black text-accent-theme text-xs flex-shrink-0 animate-spin">
-                      KS
+                      KV
                     </div>
                     <div className="glass-card border border-white/5 p-4 rounded-2xl flex items-center gap-1.5 bg-white/3">
                       <span className="w-2.5 h-2.5 rounded-full bg-accent-theme animate-ping" />
